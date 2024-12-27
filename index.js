@@ -1,10 +1,12 @@
 const express = require('express');
 const app = express();
+const PORT = 3000;
 
 // Middleware para manejar JSON en las peticiones
 app.use(express.json()); // Esto permite que el servidor reciba datos en formato JSON
 
-const PORT = 3000;
+// Lista de usuarios en memoria
+let users = [];
 
 // Ruta raíz
 app.get('/', (req, res) => {
@@ -14,24 +16,43 @@ app.get('/', (req, res) => {
 // Ruta para obtener todos los usuarios
 app.get('/users', (req, res) => {
     // Aquí deberíamos interactuar con la base de datos
-    res.json([
-        { id: 1, name: 'Juan', email: 'juan@ejemplo.com' },
-        { id: 2, name: 'Ana', email: 'ana@ejemplo.com' }
-    ]);
+    res.json(users);
 });
 
 // Ruta para obtener un usuario específico por ID
 app.get('/users/:id', (req, res) => {
     // Aquí deberíamos interactuar con la base de datos
-    const userId = req.params.id;
-    res.json({ id: userId, name: 'Juan', email: 'juan@ejemplo.com' });
+    const userId = req.params.id; // Obtenemos el ID del usuario de la URL
+
+    // Buscar el usuario con el ID proporcionado en la lista de usuarios
+    const user = users.find(u => u.id === userId);
+
+    if (!user) {
+        return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+
+    // Si el usuario existe, lo devolvemos
+    res.json(user);
 });
 
 // Ruta para crear un nuevo usuario
 app.post('/users', (req, res) => {
     const { name, email } = req.body;
-    // Aquí agregaríamos el nuevo usuario a la base de datos
-    res.status(201).json({ message: 'Usuario creado', user: { name, email } });
+
+    // Validación simple
+    if (!name || !email) {
+        return res.status(400).json({ message: 'Nombre y correo son requeridos' });
+    }
+
+    // Crear un nuevo usuario con un id único
+    const newUser = { id: users.length + 1, name, email };
+    users.push(newUser);
+
+    // Responder con el usuario creado
+    res.status(201).json({
+        message: 'Usuario creado',
+        user: newUser
+    });
 });
 
 // Ruta para actualizar un usuario
