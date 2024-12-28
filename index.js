@@ -22,7 +22,7 @@ app.get('/users', (req, res) => {
 // Ruta para obtener un usuario específico por ID
 app.get('/users/:id', (req, res) => {
     // Aquí deberíamos interactuar con la base de datos
-    const userId = req.params.id; // Obtenemos el ID del usuario de la URL
+    const userId = parseInt(req.params.id); // Obtenemos el ID del usuario de la URL
 
     // Buscar el usuario con el ID proporcionado en la lista de usuarios
     const user = users.find(u => u.id === userId);
@@ -57,10 +57,23 @@ app.post('/users', (req, res) => {
 
 // Ruta para actualizar un usuario
 app.put('/users/:id', (req, res) => {
-    const userId = req.params.id;;
+    const userId = parseInt(req.params.id); // Convertimos el ID a número
     const { name, email } = req.body;
-    // Aquí actualizaríamos el usuario en la base de datos
-    res.json({ message: `Usuario con ID ${userId} actualizado`, user: { name, email } });
+
+    // Encontramos el índice del usuario en el array
+    const userIndex = users.findIndex(u => u.id === userId);
+
+    // Si el usuario no existe, devolvemos un error 404
+    if (userIndex === -1) {
+        return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+
+    // Actualizamos los datos del usuario
+    if (name) users[userIndex].name = name;
+    if (email) users[userIndex].email = email;
+
+    // Devolvemos el usuario actualizado
+    res.json({ message: `Usuario con ID ${userId} actualizado`, user: users[userIndex] });
 });
 
 // Ruta para eliminar un usuario
