@@ -1,12 +1,37 @@
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const app = express();
 const PORT = 3000;
+
+// Ruta del archivo JSON donde se almacenan los usuarios
+const dataFilePath = path.join(__dirname, 'data.json');
 
 // Middleware para manejar JSON en las peticiones
 app.use(express.json()); // Esto permite que el servidor reciba datos en formato JSON
 
-// Lista de usuarios en memoria
-let users = [];
+// Función para cargar usuarios desde el archivo JSON
+function loadUsers() {
+    try {
+        const data = fs.readFileSync(dataFilePath, 'utf8');
+        return JSON.parse(data);
+    } catch (error) {
+        console.error('Error al cargar los usuarios:', error);
+        return [];
+    }
+}
+
+// Función para guardar usuarios en el archivo JSON
+function saveUsers(users) {
+    try {
+        fs.writeFileSync(dataFilePath, JSON.stringify(users, null, 2), 'utf-8');
+    } catch (error) {
+        console.error('Error al guardar los usuarios:', error);
+    }
+}
+
+// Cargar los usuarios al iniciar el servidor
+let users = loadUsers();
 
 // Ruta raíz
 app.get('/', (req, res) => {
@@ -47,6 +72,7 @@ app.post('/users', (req, res) => {
     // Crear un nuevo usuario con un id único
     const newUser = { id: users.length + 1, name, email };
     users.push(newUser);
+    saveUsers(users); // Guardar cambios en el archivo
 
     // Responder con el usuario creado
     res.status(201).json({
@@ -71,6 +97,7 @@ app.put('/users/:id', (req, res) => {
     // Actualizamos los datos del usuario
     if (name) users[userIndex].name = name;
     if (email) users[userIndex].email = email;
+    saveUsers(users); // Guardar cambios en el archivo
 
     // Devolvemos el usuario actualizado
     res.json({ message: `Usuario con ID ${userId} actualizado`, user: users[userIndex] });
@@ -78,9 +105,20 @@ app.put('/users/:id', (req, res) => {
 
 // Ruta para eliminar un usuario
 app.delete('/users/:id', (req, res) => {
-    const userId = req.params.id;
-    // Aquí eliminaríamos el usuario de la base de datos
-    res.json({ message: `Usuario con ID ${userId} eliminado` });
+    const userId = parseInt(req.params.id); // Convertimos el ID a número
+    const userIndex = users.findIndex(u => u.id === userId); // Buscamos el índice del usuario
+
+    // Verificamos si el usuario existe
+    if (userIndex === -1) {
+        return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+
+    // Eliminamos el usuario del array
+    const deletedUser = users.splice(userIndex, 1);
+    saveUsers(users); // Guardar cambios en el archivo
+
+    // Respondemos con un mensaje y el usuario eliminado
+    res.json({ message: `Usuario con ID ${userId} eliminado`, user: deletedUser[0] });
 });
 
 // Inicia el servidor
